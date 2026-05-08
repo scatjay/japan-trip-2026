@@ -1,0 +1,1590 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<title>2026 名古屋・京都・大阪 家庭旅行手冊</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+/* ── DH Solarized Light 設計系統 ─────────────────────────────────── */
+:root {
+  --bg:     #fdf6e3;
+  --fg:     #073642;
+  --muted:  #657b83;
+  --accent: #b58900;
+  --accentBg: #f5edcc;
+  --card:   #eee8d5;
+  --border: #c8bfa7;
+  --blue:   #268bd2;
+  --cyan:   #2aa198;
+  --green:  #859900;
+  --orange: #cb4b16;
+  --red:    #dc322f;
+  --violet: #6c71c4;
+  --shadow: rgba(7,54,66,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  background:var(--bg);color:var(--fg);
+  font-size:16px;line-height:1.75;
+  -webkit-text-size-adjust:100%;
+}
+
+/* ── 頂部 Banner ─────────────────────────────────────────────────── */
+#status-banner {
+  background:var(--accent);color:#fff;
+  padding:12px 16px;font-size:15px;font-weight:600;
+  text-align:center;letter-spacing:.3px;
+  position:sticky;top:0;z-index:100;
+}
+#status-banner .sub{font-size:12px;font-weight:400;opacity:.9;margin-top:2px;}
+
+/* ── Header ──────────────────────────────────────────────────────── */
+.page-header{
+  padding:20px 16px 16px;
+  border-bottom:2px solid var(--border);
+  background:var(--bg);
+}
+.page-header h1{
+  font-size:22px;font-weight:700;
+  color:var(--fg);letter-spacing:.5px;
+}
+.page-header .meta{
+  font-size:13px;color:var(--muted);margin-top:4px;
+}
+.page-header .meta span{margin-right:12px;}
+
+/* ── Tab 導覽 ────────────────────────────────────────────────────── */
+.tabs{
+  display:flex;overflow-x:auto;
+  border-bottom:2px solid var(--border);
+  background:var(--bg);
+  position:sticky;top:42px;z-index:99;
+  scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{
+  flex:none;padding:10px 16px;
+  font-size:14px;font-weight:600;color:var(--muted);
+  border:none;background:none;cursor:pointer;
+  border-bottom:3px solid transparent;
+  white-space:nowrap;transition:color .2s;
+}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab:hover:not(.active){color:var(--fg);}
+
+/* ── 主要內容 ────────────────────────────────────────────────────── */
+.section{display:none;padding:16px;}
+.section.active{display:block;}
+
+/* ── 日程卡片 ────────────────────────────────────────────────────── */
+.day-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  margin-bottom:14px;
+  overflow:hidden;
+  box-shadow:0 1px 4px var(--shadow);
+}
+.day-card.today{
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px var(--accentBg),0 2px 8px var(--shadow);
+}
+.day-header{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;background:var(--bg);
+  cursor:pointer;user-select:none;
+}
+.day-header .day-num{
+  min-width:42px;height:42px;
+  background:var(--accent);color:#fff;
+  border-radius:8px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;line-height:1.2;
+  flex-shrink:0;
+}
+.day-card.today .day-header .day-num{
+  background:var(--orange);
+}
+.day-header .day-num .n{font-size:18px;}
+.day-header .day-info{flex:1;min-width:0;}
+.day-header .day-info .date{font-size:13px;color:var(--muted);}
+.day-header .day-info .title{font-size:15px;font-weight:700;color:var(--fg);}
+.day-header .day-info .hotel-tag{
+  display:inline-block;font-size:11px;padding:1px 6px;
+  border-radius:4px;margin-top:3px;font-weight:600;
+}
+.hotel-a{background:#e8f4f0;color:var(--cyan);}
+.hotel-b{background:#f0ede0;color:var(--muted);}
+.hotel-c{background:#e8f0f8;color:var(--blue);}
+.hotel-d{background:#fdf0e0;color:var(--orange);}
+.day-header .chevron{
+  color:var(--muted);font-size:18px;
+  transition:transform .25s;flex-shrink:0;
+}
+.day-card.open .chevron{transform:rotate(180deg);}
+
+.day-body{
+  display:none;border-top:1px solid var(--border);
+  padding:0;
+}
+.day-card.open .day-body{display:block;}
+
+.info-row{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  font-size:14px;
+}
+.info-row:last-child{border-bottom:none;}
+.info-row .icon{
+  font-size:18px;flex-shrink:0;margin-top:1px;
+}
+.info-row .label{
+  font-size:11px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.8px;
+  white-space:nowrap;flex-shrink:0;min-width:36px;margin-top:2px;
+}
+.info-row .content{flex:1;color:var(--fg);}
+.info-row .content a{color:var(--blue);text-decoration:none;}
+.info-row .content a:hover{text-decoration:underline;}
+.tag{
+  display:inline-block;font-size:11px;padding:1px 7px;
+  border-radius:12px;font-weight:700;margin-right:4px;
+}
+.tag-warn{background:#fde8d8;color:var(--orange);}
+.tag-ok{background:#e8f4d8;color:var(--green);}
+.tag-info{background:#d8e8f8;color:var(--blue);}
+
+/* ── 住宿卡片 ────────────────────────────────────────────────────── */
+.hotel-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;margin-bottom:14px;overflow:hidden;
+  box-shadow:0 1px 4px var(--shadow);
+}
+.hotel-card .hc-header{
+  padding:14px 16px 10px;background:var(--bg);
+}
+.hotel-card .hc-header .seg{
+  font-size:11px;font-weight:700;color:#fff;
+  display:inline-block;padding:2px 8px;border-radius:12px;margin-bottom:6px;
+}
+.seg-a{background:var(--cyan);}
+.seg-b{background:var(--muted);}
+.seg-c{background:var(--blue);}
+.seg-d{background:var(--orange);}
+.hotel-card .hc-name{font-size:17px;font-weight:700;color:var(--fg);}
+.hotel-card .hc-sub{font-size:13px;color:var(--muted);margin-top:2px;}
+.hotel-card .hc-body{
+  border-top:1px solid var(--border);padding:12px 16px;
+}
+.hotel-card .hc-row{
+  display:flex;justify-content:space-between;
+  padding:5px 0;font-size:14px;border-bottom:1px solid var(--border);
+}
+.hotel-card .hc-row:last-child{border-bottom:none;}
+.hotel-card .hc-row .k{color:var(--muted);}
+.hotel-card .hc-row .v{font-weight:600;color:var(--fg);}
+.hotel-card .hc-book{
+  display:block;margin:12px 0 4px;
+  background:var(--accent);color:#fff;
+  text-align:center;padding:10px;border-radius:8px;
+  font-weight:700;font-size:14px;text-decoration:none;
+}
+.hotel-card .hc-book:hover{background:var(--orange);}
+
+/* ── 機票卡片 ────────────────────────────────────────────────────── */
+.ticket-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:16px;margin-bottom:14px;
+  box-shadow:0 1px 4px var(--shadow);
+}
+.ticket-card .route{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;
+}
+.ticket-card .airport{font-size:28px;font-weight:700;color:var(--accent);}
+.ticket-card .arrow{color:var(--muted);font-size:20px;flex:1;text-align:center;}
+.ticket-card .flight-num{
+  display:inline-block;background:var(--blue);color:#fff;
+  padding:2px 10px;border-radius:12px;font-size:13px;font-weight:700;margin-bottom:8px;
+}
+.ticket-row{
+  display:flex;justify-content:space-between;
+  padding:5px 0;font-size:14px;border-bottom:1px solid var(--border);
+}
+.ticket-row:last-child{border-bottom:none;}
+.ticket-row .k{color:var(--muted);}
+.ticket-row .v{font-weight:600;}
+.pax-list{
+  display:flex;flex-direction:column;gap:6px;margin-top:10px;
+}
+.pax-item{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;font-size:14px;
+}
+.pax-item .pax-name{font-weight:700;color:var(--fg);}
+.pax-item .pax-meta{color:var(--muted);font-size:12px;margin-top:2px;}
+
+/* ── 待辦清單 ────────────────────────────────────────────────────── */
+.todo-group{margin-bottom:18px;}
+.todo-group h3{
+  font-size:14px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.8px;
+  margin-bottom:8px;padding-bottom:4px;
+  border-bottom:1px solid var(--border);
+}
+.todo-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:8px 0;border-bottom:1px solid var(--border);
+  font-size:14px;
+}
+.todo-item:last-child{border-bottom:none;}
+.todo-item .pri{
+  flex-shrink:0;font-size:11px;font-weight:700;
+  padding:2px 6px;border-radius:4px;margin-top:2px;
+}
+.pri-now{background:#fde8d8;color:var(--orange);}
+.pri-2{background:#f5f0d0;color:var(--accent);}
+.pri-3{background:#e8f4d8;color:var(--green);}
+.pri-done{background:#e0e8e0;color:var(--muted);text-decoration:line-through;}
+.todo-item .todo-text{flex:1;}
+.todo-item .todo-note{display:block;font-size:12px;color:var(--muted);margin-top:2px;}
+
+/* ── 計數倒數 ────────────────────────────────────────────────────── */
+.countdown-box{
+  background:var(--accentBg);border:1px solid var(--accent);
+  border-radius:10px;padding:16px;margin-bottom:16px;
+  text-align:center;
+}
+.countdown-box .days-num{
+  font-size:52px;font-weight:700;color:var(--accent);line-height:1;
+}
+.countdown-box .days-label{color:var(--muted);font-size:14px;margin-top:4px;}
+.countdown-box .trip-date{font-size:13px;color:var(--muted);margin-top:8px;}
+
+.quick-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+  margin-bottom:16px;
+}
+.stat-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:10px;text-align:center;
+}
+.stat-card .sn{font-size:22px;font-weight:700;color:var(--accent);}
+.stat-card .sl{font-size:11px;color:var(--muted);}
+
+/* ── 緊急資訊 ────────────────────────────────────────────────────── */
+.alert-card{
+  background:#fde8d8;border-left:4px solid var(--orange);
+  border-radius:0 8px 8px 0;padding:12px 14px;
+  margin-bottom:12px;font-size:14px;
+}
+.alert-card .alert-title{font-weight:700;color:var(--orange);margin-bottom:4px;}
+
+/* ── 即時列車 ─────────────────────────────────────────────────────── */
+#live-train-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:12px 14px;margin-bottom:12px;
+}
+.live-train-header{
+  display:flex;justify-content:space-between;align-items:center;
+  font-weight:700;font-size:14px;margin-bottom:8px;color:var(--fg);
+}
+#live-train-refresh{
+  background:transparent;border:1px solid var(--border);border-radius:4px;
+  padding:2px 8px;font-size:13px;cursor:pointer;color:var(--muted);
+}
+#live-train-refresh:hover{background:var(--border);}
+.live-train-area{font-size:13px;margin:4px 0;line-height:1.5;}
+.train-ok{color:var(--green);font-weight:600;}
+.train-trouble{color:var(--red);font-weight:700;}
+.train-loading{color:var(--muted);font-style:italic;}
+.train-line-list{margin:4px 0 4px 18px;padding:0;font-size:12px;color:var(--red);}
+.train-line-list li{margin:1px 0;}
+#live-updated{font-size:11px;color:var(--muted);margin-top:8px;text-align:right;}
+.live-sec-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em;margin:10px 0 4px;text-transform:uppercase;}
+.live-weather-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:2px;}
+.wx-city{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 4px;text-align:center;}
+.wx-city .wx-name{font-size:11px;color:var(--muted);margin-bottom:2px;}
+.wx-city .wx-temp{font-size:22px;font-weight:700;color:var(--accent);line-height:1.1;}
+.wx-city .wx-desc{font-size:10px;color:var(--fg);margin:2px 0;}
+.wx-city .wx-rain{font-size:10px;color:var(--blue);}
+.live-shinkansen-row{font-size:13px;margin:2px 0;}
+
+/* ── 地圖 Tab ────────────────────────────────────────────────────── */
+#leaflet-map, #today-map-mini {
+  border-radius:10px;border:1px solid var(--border);
+  background:var(--card);
+}
+#leaflet-map { height:340px;margin-bottom:12px; }
+#today-map-mini { height:160px;margin-bottom:12px;display:none; }
+.map-day-grid {
+  display:grid;grid-template-columns:repeat(5,1fr);gap:5px;
+  margin-bottom:10px;
+}
+.map-day-btn {
+  padding:5px 2px;background:var(--card);border:1px solid var(--border);
+  border-radius:6px;font-size:11px;font-weight:600;color:var(--muted);
+  cursor:pointer;text-align:center;line-height:1.2;
+}
+.map-day-btn.active { background:var(--accent);color:#fff;border-color:var(--accent); }
+.map-day-btn:hover:not(.active) { color:var(--fg);border-color:var(--accent); }
+.map-overview-btn {
+  display:block;width:100%;padding:9px;
+  background:var(--fg);color:#fff;border:none;border-radius:8px;
+  font-weight:700;font-size:13px;cursor:pointer;margin-bottom:10px;
+}
+.gmaps-btn {
+  display:block;text-align:center;padding:9px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;font-size:13px;color:var(--blue);
+  text-decoration:none;font-weight:600;margin-top:6px;
+}
+.map-day-info {
+  background:var(--accentBg);border:1px solid var(--accent);
+  border-radius:8px;padding:10px 12px;margin-bottom:10px;
+  font-size:13px;
+}
+.map-day-info .mdi-title { font-weight:700;color:var(--fg); }
+.map-day-info .mdi-sub { color:var(--muted);font-size:12px;margin-top:2px; }
+
+/* ── 移動特效 ────────────────────────────────────────────────────── */
+@media(max-width:480px){
+  .page-header h1{font-size:19px;}
+  .quick-stats{grid-template-columns:repeat(3,1fr);}
+}
+</style>
+</head>
+<body>
+<div id="auth-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+  <div style="font-size:28px;">✈️ 🗾</div>
+  <div style="font-size:18px;font-weight:700;color:var(--fg);">2026 日本家庭旅行手冊</div>
+  <input id="auth-input" type="password" placeholder="請輸入密碼" autocomplete="current-password"
+    style="padding:10px 16px;border:1px solid var(--border);border-radius:8px;font-size:16px;background:var(--card);color:var(--fg);outline:none;width:220px;text-align:center;"
+    onkeydown="if(event.key==='Enter')checkAuth()"/>
+  <button onclick="checkAuth()"
+    style="padding:10px 32px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;">進入</button>
+  <div id="auth-err" style="color:var(--red);font-size:13px;display:none;">密碼錯誤，請再試一次</div>
+</div>
+<script>
+(function(){
+  var PWD='As660220';
+  var overlay=document.getElementById('auth-overlay');
+  if(sessionStorage.getItem('japan2026auth')===PWD){overlay.style.display='none';}
+  else{document.body.style.overflow='hidden';overlay.style.display='flex';setTimeout(function(){document.getElementById('auth-input').focus();},100);}
+  window.checkAuth=function(){
+    var v=document.getElementById('auth-input').value;
+    if(v===PWD){sessionStorage.setItem('japan2026auth',PWD);overlay.style.display='none';document.body.style.overflow='';}
+    else{document.getElementById('auth-err').style.display='block';document.getElementById('auth-input').value='';document.getElementById('auth-input').focus();}
+  };
+})();
+</script>
+
+<!-- 頂部狀態 Banner -->
+<div id="status-banner">
+  <div id="banner-main">📅 載入中…</div>
+  <div id="banner-sub" class="sub"></div>
+</div>
+
+<!-- 頁面標題 -->
+<div class="page-header">
+  <h1>✈️ 2026 名古屋・京都・大阪</h1>
+  <div class="meta">
+    <span>📅 7/13(一) – 7/27(一)</span>
+    <span>👨‍👩‍👧‍👦 4 人（3 大 1 小，5 歲）</span>
+    <span>🌙 14 晚</span>
+  </div>
+</div>
+
+<!-- Tab 導覽 -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('today')">今日</button>
+  <button class="tab" onclick="showTab('map')">🗺 地圖</button>
+  <button class="tab" onclick="showTab('itinerary')">行程</button>
+  <button class="tab" onclick="showTab('hotel')">住宿</button>
+  <button class="tab" onclick="showTab('flight')">機票</button>
+  <button class="tab" onclick="showTab('todo')">待辦</button>
+</div>
+
+<!-- ══ 今日 ══════════════════════════════════════════════════════════ -->
+<div id="tab-today" class="section active">
+
+  <div class="countdown-box">
+    <div class="days-num" id="countdown-num">—</div>
+    <div class="days-label" id="countdown-label">距出發</div>
+    <div class="trip-date">出發日 2026/7/13（一）・抵台 7/27（一）22:50</div>
+  </div>
+
+  <div class="quick-stats">
+    <div class="stat-card"><div class="sn">15</div><div class="sl">天行程</div></div>
+    <div class="stat-card"><div class="sn">4</div><div class="sl">段住宿</div></div>
+    <div class="stat-card"><div class="sn">NT$<br>53,718</div><div class="sl">住宿總計</div></div>
+  </div>
+
+  <div id="today-detail"><!-- 由 JS 動態填入 --></div>
+  <div id="today-transport"></div>
+  <div id="today-map-mini"></div>
+  <div id="today-timeline"></div>
+
+  <!-- 日本即時資訊 -->
+  <div id="live-train-card">
+    <div class="live-train-header">
+      <span>📡 日本即時資訊</span>
+      <button id="live-refresh-btn" onclick="fetchAllLiveInfo()">↻</button>
+    </div>
+    <div class="live-sec-title">🌤 三都天氣</div>
+    <div id="live-weather" class="live-weather-grid"></div>
+    <div class="live-sec-title">🚄 東海道新幹線（名古屋↔京都↔大阪）</div>
+    <div id="live-shinkansen"></div>
+    <div class="live-sec-title">🌀 颱風・氣象警報</div>
+    <div id="live-typhoon"></div>
+    <div id="live-updated"></div>
+  </div>
+
+  <div class="alert-card">
+    <div class="alert-title">⚡ 立刻要搞定</div>
+    <div>吉卜力公園（7/16）— 出發前 4 個月開放，超搶手，建議現在就確認預約！</div>
+  </div>
+  <div class="alert-card">
+    <div class="alert-title">🎮 任天堂博物館（7/23）</div>
+    <div>3 個月前抽選制，約在 4/13 左右開放，請至 <a href="https://museum.nintendo.com/" style="color:var(--orange)">museum.nintendo.com</a> 確認。</div>
+  </div>
+
+</div><!-- /tab-today -->
+
+<!-- ══ 地圖 ══════════════════════════════════════════════════════════ -->
+<div id="tab-map" class="section">
+
+  <button class="map-overview-btn" onclick="mapShowOverview()">🗾 全程總覽（名古屋 → 京都 → 大阪）</button>
+
+  <div class="map-day-grid" id="map-day-grid"></div>
+
+  <div class="map-day-info" id="map-day-info" style="display:none">
+    <div class="mdi-title" id="map-day-title"></div>
+    <div class="mdi-sub" id="map-day-sub"></div>
+  </div>
+
+  <div id="leaflet-map"></div>
+
+  <a id="gmaps-link" href="https://maps.google.com/maps?q=Japan" class="gmaps-btn" target="_blank">
+    📍 在 Google Maps 開啟
+  </a>
+
+</div><!-- /tab-map -->
+
+<!-- ══ 行程 ══════════════════════════════════════════════════════════ -->
+<div id="tab-itinerary" class="section">
+
+  <!-- Day 1 -->
+  <div class="day-card" id="day-1">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">1</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/13（一）</div>
+        <div class="title">抵達名古屋</div>
+        <span class="hotel-tag hotel-a">★ KOKO HOTEL</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">✈️</div>
+        <div class="label">交通</div>
+        <div class="content">桃園 17:15 → 名古屋 21:05 → <strong>名鐵 μ-SKY</strong> 30 分進市區（¥1,250/人）</div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🏨</div>
+        <div class="label">住宿</div>
+        <div class="content"><strong>KOKO HOTEL 名古屋丸之內</strong>（中區錦 1-4-11）<br>Check-in：15:00 後 ｜ <span class="tag tag-ok">含早餐</span></div>
+      </div>
+      <div class="info-row">
+        <div class="icon">📍</div>
+        <div class="label">備注</div>
+        <div class="content">抵達較晚，以安頓為主。附近便利商店採買隔日早餐備品。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 2 -->
+  <div class="day-card" id="day-2">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">2</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/14（二）</div>
+        <div class="title">豐田館 · 美術館 · Oasis21</div>
+        <span class="hotel-tag hotel-a">KOKO HOTEL</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🚇</div>
+        <div class="label">交通</div>
+        <div class="content">地鐵一日券 ¥760，或名古屋觀光路線巴士 "Me〜guru"</div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🏛</div>
+        <div class="label">景點</div>
+        <div class="content">
+          🕙 <strong>豐田產業技術紀念館</strong>（10:00–13:00，¥1,000/人）<br>
+          🕔 <strong>愛知縣美術館</strong>（14:30–17:00，¥500）<br>
+          🌃 <strong>Oasis21 + 名古屋電視塔</strong>（夜景，¥700）
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🍽</div>
+        <div class="label">餐食</div>
+        <div class="content">榮商圈百貨公司餐廳（午）｜ Oasis21 地庫餐廳（晚）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 3 -->
+  <div class="day-card" id="day-3">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">3</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/15（三）</div>
+        <div class="title">科學館 · 名古屋城 · 大須</div>
+        <span class="hotel-tag hotel-a">KOKO HOTEL</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🚇</div>
+        <div class="label">交通</div>
+        <div class="content">地鐵鶴舞線（大須），名城線（市役所站 → 名古屋城）</div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🏛</div>
+        <div class="label">景點</div>
+        <div class="content">
+          🕤 <strong>名古屋市科學館</strong>（09:30–14:30，¥400 + 天幕¥800）<span class="tag tag-warn">世界最大穹頂</span><br>
+          🕒 <strong>名古屋城</strong>（15:00，¥500）<br>
+          🌆 <strong>大須觀音 + 大須商店街</strong> → KONPARU 炸蝦三明治
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">💡</div>
+        <div class="label">撇步</div>
+        <div class="content">科學館買票後可蓋章外出午餐再入場，一天多次入館。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 4 -->
+  <div class="day-card" id="day-4">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">4</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/16（四）</div>
+        <div class="title">吉卜力公園</div>
+        <span class="hotel-tag hotel-a">KOKO HOTEL</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🚇</div>
+        <div class="label">交通</div>
+        <div class="content">地鐵東山線 → 藤之丘站 → Linimo 磁浮列車 → 愛・地球博記念公園站（約 50 分）</div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🌿</div>
+        <div class="label">景點</div>
+        <div class="content">
+          <span class="tag tag-warn">🎫 需事先預約 Klook</span><br>
+          <strong>吉卜力公園</strong> 10:00–17:00<br>
+          🏠 吉卜力大倉庫（3 hr）｜ 🧙 魔女之谷（3 hr）｜ 🌳 魔法之里（40 min）
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">⚠️</div>
+        <div class="label">注意</div>
+        <div class="content">需攜帶護照作本人確認。建議提前 30 分排隊。</div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🔗</div>
+        <div class="label">連結</div>
+        <div class="content"><a href="https://www.klook.com/zh-TW/activity/132673-ghibli-park-ticket/">Klook 購票頁</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 5 -->
+  <div class="day-card" id="day-5">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">5</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/17（五）</div>
+        <div class="title">⭐ 換飯店日：磁浮館 → To-Be</div>
+        <span class="hotel-tag hotel-b">★ 換到 To-Be</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🧳</div>
+        <div class="label">搬家</div>
+        <div class="content">
+          <strong>09:30</strong> KOKO 退房，<strong>行李寄放</strong>（不用全帶走）<br>
+          <strong>上午</strong> 搭青波線前往 リニア鐵道館（金城ふ頭站，¥1,000）<br>
+          <strong>中午</strong> 回 KOKO 取行李 → <strong>計程車</strong>（5–7 分，¥1,000）到 To-Be<br>
+          <strong>To-Be Check-in</strong>：15:00 後，行李可先寄放
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🚂</div>
+        <div class="label">景點</div>
+        <div class="content">
+          🕤 <strong>リニア・鐵道館</strong>（磁浮列車）9:30–15:00<br>
+          🕓 <strong>名古屋市美術館</strong>（步行 12 分，¥500）
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🍜</div>
+        <div class="label">餐食</div>
+        <div class="content">鐵道館復刻便當（需提早卡位）｜ 大須商店街晚餐</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 6 -->
+  <div class="day-card" id="day-6">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">6</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/18（六）</div>
+        <div class="title">樂高樂園</div>
+        <span class="hotel-tag hotel-b">To-Be</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🚇</div>
+        <div class="label">交通</div>
+        <div class="content">JR 名古屋站 → 青波線 → 金城ふ頭站（25 分，¥350/人）→ 步行 8 分</div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🧱</div>
+        <div class="label">景點</div>
+        <div class="content">
+          <span class="tag tag-warn">🎫 建議提前 Klook 購票</span><br>
+          <strong>樂高樂園</strong> 09:30–16:30<br>
+          💦 水上設施：帶泳衣、換洗衣物、濕鞋/涼鞋、大毛巾
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🔗</div>
+        <div class="label">連結</div>
+        <div class="content"><a href="https://www.legoland.jp/zh-hant/">LEGOLAND 官網</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 7 -->
+  <div class="day-card" id="day-7">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">7</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/19（日）</div>
+        <div class="title">名古屋港水族館</div>
+        <span class="hotel-tag hotel-b">To-Be</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🚇</div>
+        <div class="label">交通</div>
+        <div class="content">地鐵名港線 → 名古屋港站 3 號出口 → 步行 5 分</div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🐳</div>
+        <div class="label">景點</div>
+        <div class="content">
+          <strong>名古屋港水族館</strong> 09:30–17:30（暑假到 20:00）<br>
+          🎫 4 館共通券 ¥2,400（含水族館、南極觀測船、展望室、海洋博物館）<br>
+          ✅ 入場前確認：海豚表演 / 企鵝餵食 / 沙丁魚龍捲風時間表
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🌸</div>
+        <div class="label">傍晚</div>
+        <div class="content">名古屋港 野花公園（步行 5–10 分）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 8 -->
+  <div class="day-card" id="day-8">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">8</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/20（一）</div>
+        <div class="title">新幹線到京都</div>
+        <span class="hotel-tag hotel-c">★ 京阪京都大酒店</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🚄</div>
+        <div class="label">交通</div>
+        <div class="content">
+          <strong>東海道新幹線</strong> 名古屋 → 京都（のぞみ 35 分 / ひかり 50 分）<br>
+          <span class="tag tag-info">建議提前訂對號座（1 個月前開售）</span>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🏛</div>
+        <div class="label">景點</div>
+        <div class="content">
+          抵達後放行李 → <strong>青蓮院門跡</strong> → <strong>三十三間堂</strong> → 京都站周邊晚餐
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🏨</div>
+        <div class="label">住宿</div>
+        <div class="content"><strong>京阪京都大酒店</strong>（南區八條口）<br><span class="tag tag-ok">含早餐 ⭐ 評分 8.5</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 9 -->
+  <div class="day-card" id="day-9">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">9</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/21（二）</div>
+        <div class="title">清水寺 · 祇園 · 錦市場</div>
+        <span class="hotel-tag hotel-c">京阪京都</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🏯</div>
+        <div class="label">景點</div>
+        <div class="content">
+          清水寺 → 二・三年坂 → 八坂塔 →
+          <strong>AWOMB 午餐</strong>（手作壽司，需預約）→
+          花見小路 → 八坂神社 → 鴨川散步 → 錦市場
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🔗</div>
+        <div class="label">預約</div>
+        <div class="content">AWOMB 祇園八坂：出發前 1 個月開放，官網訂位</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 10 -->
+  <div class="day-card" id="day-10">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">10</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/22（三）</div>
+        <div class="title">嵐山 · 金閣寺</div>
+        <span class="hotel-tag hotel-c">京阪京都</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🌿</div>
+        <div class="label">景點</div>
+        <div class="content">
+          嵐山渡月橋 → <strong>天龍寺</strong>（庭園） →
+          <strong>竹林之道</strong> → 野宮神社 →
+          龍安寺（枯山水）→ <strong>金閣寺</strong>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🚌</div>
+        <div class="label">交通</div>
+        <div class="content">嵐電（嵐山電車）往返 ＋ 公車。建議買京都地下鐵・市公車一日券 ¥1,100</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 11 -->
+  <div class="day-card" id="day-11">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">11</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/23（四）</div>
+        <div class="title">任天堂博物館 · 伏見稻荷</div>
+        <span class="hotel-tag hotel-c">京阪京都</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🎮</div>
+        <div class="label">景點</div>
+        <div class="content">
+          <span class="tag tag-warn">🎫 需 3 個月前抽選</span>
+          <strong>任天堂博物館</strong>（宇治市，京阪宇治線小倉站步行 5 分）<br>
+          下午 → 返京都 → <strong>伏見稻荷大社</strong>（千本鳥居，傍晚人少）
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🔗</div>
+        <div class="label">連結</div>
+        <div class="content"><a href="https://museum.nintendo.com/">museum.nintendo.com</a>（抽選頁）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 12 -->
+  <div class="day-card" id="day-12">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">12</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/24（五）</div>
+        <div class="title">🏮 祇園祭山鉾巡行（後祭）</div>
+        <span class="hotel-tag hotel-c">京阪京都</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🏮</div>
+        <div class="label">主要</div>
+        <div class="content">
+          <span class="tag tag-warn">🎪 特別活動</span>
+          <strong>祇園祭山鉾巡行（後祭）</strong><br>
+          09:30 烏丸御池出發 → 11:20 結束<br>
+          推薦地點：四條河原町（最熱鬧，需 08:30 前佔位）<br>
+          帶水、防曬、帽子、扇子
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🏛</div>
+        <div class="label">下午</div>
+        <div class="content">國立近代美術館 → 寺町通 / 新京極 → 錦天滿宮</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 13 -->
+  <div class="day-card" id="day-13">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">13</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/25（六）</div>
+        <div class="title">新幹線到大阪 · 道頓堀</div>
+        <span class="hotel-tag hotel-d">★ Estate Kuromon</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🚄</div>
+        <div class="label">交通</div>
+        <div class="content">京都 → 大阪（新幹線 15 分 / JR 快速 30 分）</div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🦞</div>
+        <div class="label">景點</div>
+        <div class="content">
+          放行李 → <strong>道頓堀</strong> → 美國村 → 心齋橋 →
+          <strong>黑門市場</strong>（步行 2 分回飯店）→ 難波 / 日本橋
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🏨</div>
+        <div class="label">住宿</div>
+        <div class="content"><strong>Estate Kuromon Bekkan D</strong>（中央區日本橋）<br>30m² 公寓型 ｜ 黑門市場 2 分 ｜<span class="tag tag-info">無早餐</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 14 -->
+  <div class="day-card" id="day-14">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">14</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/26（日）</div>
+        <div class="title">中之島 · 陶磁美術館 · 心齋橋</div>
+        <span class="hotel-tag hotel-d">Estate Kuromon</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🏛</div>
+        <div class="label">景點</div>
+        <div class="content">
+          北新地（早午餐）→ <strong>中之島散步</strong> → 難波橋 →
+          <strong>大阪市立東洋陶磁美術館</strong>（¥500，國寶「油滴天目茶碗」9:30–17:00）→
+          心齋橋 / 道頓堀晚餐
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🛒</div>
+        <div class="label">購物</div>
+        <div class="content">最後一個完整購物日，可採購伴手禮。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 15 -->
+  <div class="day-card" id="day-15">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num"><span class="n">15</span>Day</div>
+      <div class="day-info">
+        <div class="date">7/27（一）</div>
+        <div class="title">🛫 回台！KIX 20:35 → KHH 22:50</div>
+        <span class="hotel-tag hotel-d">返台</span>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row">
+        <div class="icon">🌅</div>
+        <div class="label">上午</div>
+        <div class="content">黑門市場（最後採買）→ <strong>大阪城</strong> → <strong>大阪 Duck Tour</strong></div>
+      </div>
+      <div class="info-row">
+        <div class="icon">✈️</div>
+        <div class="label">回程</div>
+        <div class="content">
+          <span class="tag tag-warn">⚡ 重要</span>
+          <strong>17:30 前抵達 KIX</strong>（建議 17:00）<br>
+          🛫 CI177 關西機場 <strong>20:35</strong> → 高雄小港 <strong>22:50</strong><br>
+          航廈 1F 辦理登機，帶行李前確認限重（每人 1 件 23kg）
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="icon">🚌</div>
+        <div class="label">KIX 交通</div>
+        <div class="content">難波 → HARUKA 特急（¥2,330/人，50 分）或 Limousine Bus</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-itinerary -->
+
+<!-- ══ 住宿 ══════════════════════════════════════════════════════════ -->
+<div id="tab-hotel" class="section">
+
+  <div class="hotel-card">
+    <div class="hc-header">
+      <div class="seg seg-a">A 段 · 名古屋前半</div>
+      <div class="hc-name">KOKO HOTEL 名古屋丸之內</div>
+      <div class="hc-sub">中區錦 1-4-11 ｜ 7/13–7/17</div>
+    </div>
+    <div class="hc-body">
+      <div class="hc-row"><span class="k">入住 / 退房</span><span class="v">7/13（一）→ 7/17（五）4 晚</span></div>
+      <div class="hc-row"><span class="k">早餐</span><span class="v">✅ 日西式自助（+¥1,500/人/天）</span></div>
+      <div class="hc-row"><span class="k">總價</span><span class="v">NT$ 14,007</span></div>
+      <div class="hc-row"><span class="k">位置</span><span class="v">地鐵丸之內站 2 分｜榮 10 分</span></div>
+      <a href="https://www.booking.com/hotel/jp/hotelwinginternationalnagoya.html?aid=8132308&checkin=2026-07-13&checkout=2026-07-17&group_adults=3&group_children=1&age=5" class="hc-book">🔗 Booking.com 訂房頁</a>
+    </div>
+  </div>
+
+  <div class="hotel-card">
+    <div class="hc-header">
+      <div class="seg seg-b">B 段 · 名古屋後半</div>
+      <div class="hc-name">To-Be（大須）</div>
+      <div class="hc-sub">中區大須 1-32-12 ｜ 7/17–7/20</div>
+    </div>
+    <div class="hc-body">
+      <div class="hc-row"><span class="k">入住 / 退房</span><span class="v">7/17（五）→ 7/20（一）3 晚</span></div>
+      <div class="hc-row"><span class="k">早餐</span><span class="v">❌ 無（附近コメダ珈琲 / 便利商店）</span></div>
+      <div class="hc-row"><span class="k">總價</span><span class="v">NT$ 11,766</span></div>
+      <div class="hc-row"><span class="k">位置</span><span class="v">公寓型，大須商店街旁</span></div>
+      <a href="https://www.booking.com/hotel/jp/to-be.html?aid=8132308&checkin=2026-07-17&checkout=2026-07-20&group_adults=3&group_children=1&age=5" class="hc-book">🔗 Booking.com 訂房頁</a>
+    </div>
+  </div>
+
+  <div class="hotel-card">
+    <div class="hc-header">
+      <div class="seg seg-c">C 段 · 京都</div>
+      <div class="hc-name">京阪京都大酒店</div>
+      <div class="hc-sub">南區八條口 ｜ 7/20–7/25</div>
+    </div>
+    <div class="hc-body">
+      <div class="hc-row"><span class="k">入住 / 退房</span><span class="v">7/20（一）→ 7/25（六）5 晚</span></div>
+      <div class="hc-row"><span class="k">早餐</span><span class="v">✅ 含早餐（⭐ 評分 8.5）</span></div>
+      <div class="hc-row"><span class="k">總價</span><span class="v">NT$ 23,186</span></div>
+      <div class="hc-row"><span class="k">位置</span><span class="v">JR 京都站 3 分，交通最便利</span></div>
+      <a href="https://www.booking.com/hotel/jp/keihan-kyoto.html?aid=8132308&checkin=2026-07-20&checkout=2026-07-25&group_adults=3&group_children=1&age=5" class="hc-book">🔗 Booking.com 訂房頁</a>
+    </div>
+  </div>
+
+  <div class="hotel-card">
+    <div class="hc-header">
+      <div class="seg seg-d">D 段 · 大阪</div>
+      <div class="hc-name">Estate Kuromon Bekkan D</div>
+      <div class="hc-sub">中央區日本橋 ｜ 7/25–7/27</div>
+    </div>
+    <div class="hc-body">
+      <div class="hc-row"><span class="k">入住 / 退房</span><span class="v">7/25（六）→ 7/27（一）2 晚</span></div>
+      <div class="hc-row"><span class="k">早餐</span><span class="v">❌ 無（黑門市場 2 分！）</span></div>
+      <div class="hc-row"><span class="k">總價</span><span class="v">NT$ 4,759</span></div>
+      <div class="hc-row"><span class="k">房型</span><span class="v">30m² 公寓型，黑門市場 2 分鐘</span></div>
+      <a href="https://www.booking.com/hotel/jp/estate-kuromon-bekkan-d.html?aid=8132308&checkin=2026-07-25&checkout=2026-07-27&group_adults=3&group_children=1&age=5" class="hc-book">🔗 Booking.com 訂房頁</a>
+    </div>
+  </div>
+
+  <!-- 住宿總計 -->
+  <div class="day-card" style="border-color:var(--accent)">
+    <div class="day-header" onclick="toggleDay(this)">
+      <div class="day-num" style="background:var(--fg)"><span class="n">Σ</span></div>
+      <div class="day-info">
+        <div class="title">全程 14 晚住宿總覽</div>
+        <div class="date">4 段合計</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div class="day-body">
+      <div class="info-row"><div class="label">總計</div><div class="content"><strong style="font-size:18px;color:var(--accent)">NT$ 53,718</strong></div></div>
+      <div class="info-row"><div class="label">平均</div><div class="content">NT$ 3,837 / 晚（4 人），每人 NT$ 959 / 晚</div></div>
+      <div class="info-row"><div class="label">早餐</div><div class="content">A、C 段含早餐；B（コメダ外食）、D（黑門市場）自行解決</div></div>
+    </div>
+  </div>
+
+</div><!-- /tab-hotel -->
+
+<!-- ══ 機票 ══════════════════════════════════════════════════════════ -->
+<div id="tab-flight" class="section">
+
+  <div class="ticket-card">
+    <div class="flight-num">回程 CI177</div>
+    <div class="route">
+      <div class="airport">KIX</div>
+      <div class="arrow">✈️ ───→</div>
+      <div class="airport">KHH</div>
+    </div>
+    <div class="ticket-row"><span class="k">日期</span><span class="v">2026-07-27（一）</span></div>
+    <div class="ticket-row"><span class="k">起飛</span><span class="v">20:35（關西機場 第一航廈）</span></div>
+    <div class="ticket-row"><span class="k">抵達</span><span class="v">22:50（高雄小港 國際航廈）</span></div>
+    <div class="ticket-row"><span class="k">飛行</span><span class="v">3 小時 15 分</span></div>
+    <div class="ticket-row"><span class="k">機型</span><span class="v">空中巴士 A321 NEO</span></div>
+    <div class="ticket-row"><span class="k">艙等</span><span class="v">經濟艙 H，含餐點</span></div>
+    <div class="ticket-row"><span class="k">行李</span><span class="v">每人 1 件，上限 23 kg</span></div>
+    <div class="ticket-row"><span class="k">訂位代號</span><span class="v" style="font-family:monospace;letter-spacing:2px">B2RCGW</span></div>
+    <div class="ticket-row"><span class="k">訂單</span><span class="v" style="font-family:monospace">ORD0028125456</span></div>
+  </div>
+
+  <div class="pax-list">
+    <div class="pax-item">
+      <div class="pax-name">YANG / CHIHCHIEH MR</div>
+      <div class="pax-meta">機票號碼：2977397754017 ｜ 成人票</div>
+    </div>
+    <div class="pax-item">
+      <div class="pax-name">WANG / MENGTING MS</div>
+      <div class="pax-meta">機票號碼：2977397754016 ｜ 成人票</div>
+    </div>
+    <div class="pax-item">
+      <div class="pax-name">YANG / ANSIA MISS</div>
+      <div class="pax-meta">機票號碼：2977397754018 ｜ 孩童票</div>
+    </div>
+  </div>
+
+  <div style="margin-top:12px">
+    <div class="alert-card">
+      <div class="alert-title">🛄 行李注意</div>
+      <div>行動電源、藍牙耳機禁止托運，<strong>必須放手提行李</strong>。<br>各人行李不超過 23kg。</div>
+    </div>
+    <div class="alert-card">
+      <div class="alert-title">⏰ KIX 報到時間</div>
+      <div>建議 <strong>17:30 前抵達</strong> KIX（班機 20:35）。<br>難波 → HARUKA 特急 約 50 分（¥2,330/人）。</div>
+    </div>
+  </div>
+
+</div><!-- /tab-flight -->
+
+<!-- ══ 待辦 ══════════════════════════════════════════════════════════ -->
+<div id="tab-todo" class="section">
+
+  <div class="todo-group">
+    <h3>⚡ 立刻要搞定</h3>
+    <div class="todo-item">
+      <span class="pri pri-now">立刻</span>
+      <div class="todo-text">
+        <strong>吉卜力公園（7/16）</strong>預約
+        <span class="todo-note">出發前 4 個月開放，超搶手。<a href="https://www.klook.com/zh-TW/activity/132673-ghibli-park-ticket/">Klook 購票頁</a></span>
+      </div>
+    </div>
+    <div class="todo-item">
+      <span class="pri pri-now">立刻</span>
+      <div class="todo-text">
+        <strong>任天堂博物館（7/23）</strong>抽選
+        <span class="todo-note">3 個月前（約 4/23）開放抽選，中籤率低。<a href="https://museum.nintendo.com/">官網</a></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="todo-group">
+    <h3>★★ 出發前 1–2 個月</h3>
+    <div class="todo-item">
+      <span class="pri pri-2">★★</span>
+      <div class="todo-text">
+        <strong>樂高樂園（7/18）</strong>購票
+        <span class="todo-note">提前訂享優惠，夏季水上設施熱門。<a href="https://www.legoland.jp/zh-hant/">官網</a></span>
+      </div>
+    </div>
+    <div class="todo-item">
+      <span class="pri pri-2">★★</span>
+      <div class="todo-text">
+        <strong>新幹線訂位</strong>（7/20 名古屋→京都 ＋ 7/25 京都→大阪）
+        <span class="todo-note">JR Central EX 線上訂，4 人坐建議對號座，出發前 1 個月開售。</span>
+      </div>
+    </div>
+    <div class="todo-item">
+      <span class="pri pri-2">★★</span>
+      <div class="todo-text">
+        <strong>AWOMB 祇園八坂午餐（7/21）</strong>訂位
+        <span class="todo-note">出發前 1 個月開放，手作壽司超人氣。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="todo-group">
+    <h3>★ 出發前 2 週內</h3>
+    <div class="todo-item">
+      <span class="pri pri-3">★</span>
+      <div class="todo-text">
+        <strong>Visit Japan Web</strong> 全家建立帳號
+        <span class="todo-note"><a href="https://vjw-lp.digital.go.jp/">vjw-lp.digital.go.jp</a>，每人各自建立。</span>
+      </div>
+    </div>
+    <div class="todo-item">
+      <span class="pri pri-3">★</span>
+      <div class="todo-text">
+        <strong>日幣兌換</strong>
+        <span class="todo-note">預估 12 萬日幣。台銀、玉山等，出發前 1 週兌換。</span>
+      </div>
+    </div>
+    <div class="todo-item">
+      <span class="pri pri-3">★</span>
+      <div class="todo-text">
+        <strong>國際漫遊 SIM 卡或 eSIM</strong>
+        <span class="todo-note">出發日起算，提前在台灣辦好（3 人各一）。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="todo-group">
+    <h3>✅ 已完成</h3>
+    <div class="todo-item">
+      <span class="pri pri-done">✅</span>
+      <div class="todo-text" style="opacity:.7">KOKO HOTEL 4 晚 ｜ To-Be 3 晚 ｜ 京阪京都 5 晚 ｜ Estate Kuromon 2 晚</div>
+    </div>
+    <div class="todo-item">
+      <span class="pri pri-done">✅</span>
+      <div class="todo-text" style="opacity:.7">回程機票 CI177 KIX→KHH 7/27 20:35（訂單 ORD0028125456）</div>
+    </div>
+  </div>
+
+</div><!-- /tab-todo -->
+
+<div style="height:32px;"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="map_module.js"></script>
+<script src="transport_module.js"></script>
+<script>
+/* ── Tab 切換 ────────────────────────────────────────────────────── */
+const TAB_NAMES = ['today','map','itinerary','hotel','flight','todo'];
+let mapInitialized = false;
+
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const btns = document.querySelectorAll('.tab');
+  const idx = TAB_NAMES.indexOf(name);
+  if (idx >= 0) btns[idx].classList.add('active');
+
+  if (name === 'map' && !mapInitialized) {
+    initMap();
+  }
+}
+
+/* ── 展開/收合天卡 ───────────────────────────────────────────────── */
+function toggleDay(header) {
+  header.closest('.day-card').classList.toggle('open');
+}
+
+/* ── 行程資料 ────────────────────────────────────────────────────── */
+const days = [
+  { n:1,  date:'2026-07-13', city:'名古屋', title:'抵達名古屋',             highlight:'落地！搭名鐵 μ-SKY 30 分進市區' },
+  { n:2,  date:'2026-07-14', city:'名古屋', title:'豐田館・愛知美術館',      highlight:'豐田產業技術紀念館（10:00）→ Oasis21 夜景' },
+  { n:3,  date:'2026-07-15', city:'名古屋', title:'科學館・名古屋城',         highlight:'名古屋市科學館（09:30，天幕必看）→ 大須 KONPARU' },
+  { n:4,  date:'2026-07-16', city:'名古屋', title:'吉卜力公園',               highlight:'🎫 預約制！藤之丘 → Linimo → 愛・地球博記念公園（10:00）' },
+  { n:5,  date:'2026-07-17', city:'名古屋', title:'⭐ 換飯店：KOKO→To-Be',   highlight:'09:30 退房寄行李 → 磁浮鐵道館 → 計程車到 To-Be' },
+  { n:6,  date:'2026-07-18', city:'名古屋', title:'樂高樂園',                 highlight:'金城ふ頭，09:30 入園，帶泳衣！水上設施必備' },
+  { n:7,  date:'2026-07-19', city:'名古屋', title:'名古屋港水族館',            highlight:'4 館共通券 ¥2,400，入場前確認表演時間' },
+  { n:8,  date:'2026-07-20', city:'京都',   title:'新幹線到京都',              highlight:'のぞみ 35 分 → 青蓮院門跡 → 三十三間堂' },
+  { n:9,  date:'2026-07-21', city:'京都',   title:'清水寺・祇園',              highlight:'清水寺 → 二三年坂 → AWOMB（預約）→ 錦市場' },
+  { n:10, date:'2026-07-22', city:'京都',   title:'嵐山・金閣寺',              highlight:'嵐山渡月橋 → 竹林之道 → 龍安寺 → 金閣寺' },
+  { n:11, date:'2026-07-23', city:'京都',   title:'任天堂博物館・伏見稻荷',    highlight:'🎫 抽選制！宇治 → 傍晚伏見稻荷千本鳥居' },
+  { n:12, date:'2026-07-24', city:'京都',   title:'🏮 祇園祭山鉾巡行',         highlight:'09:30 烏丸御池出發，08:30 前佔位，帶水帽防曬' },
+  { n:13, date:'2026-07-25', city:'大阪',   title:'新幹線到大阪・道頓堀',      highlight:'放行李 → 道頓堀 → 黑門市場（回飯店 2 分）' },
+  { n:14, date:'2026-07-26', city:'大阪',   title:'中之島・陶磁美術館',        highlight:'中之島 → 東洋陶磁美術館（國寶油滴天目，¥500）→ 心齋橋晚餐' },
+  { n:15, date:'2026-07-27', city:'大阪→KHH',title:'🛫 回台！CI177 20:35',   highlight:'黑門市場 → 大阪城 Duck Tour → 17:30 前抵 KIX' },
+];
+
+/* ── 日期狀態計算 ────────────────────────────────────────────────── */
+function getTripStatus() {
+  const nowDate = new Date(new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Taipei'}) + 'T00:00:00');
+  const tripStart = new Date('2026-07-13T00:00:00');
+  const tripEnd   = new Date('2026-07-27T00:00:00');
+  const diffDays  = Math.ceil((tripStart - nowDate) / 86400000);
+  if (diffDays > 0) return { state:'before', daysLeft: diffDays };
+  if (nowDate > tripEnd) return { state:'after' };
+  const idx = Math.floor((nowDate - tripStart) / 86400000);
+  return { state:'during', dayNum: idx + 1, dayData: days[idx] };
+}
+
+/* ── 今日 Tab 更新（含 TransportModule 時刻表）────────────────────── */
+function updateTodayTab() {
+  const status = getTripStatus();
+  const banner   = document.getElementById('banner-main');
+  const bannerSub= document.getElementById('banner-sub');
+  const countNum = document.getElementById('countdown-num');
+  const countLabel= document.getElementById('countdown-label');
+  const todayDetail = document.getElementById('today-detail');
+  const todayTransport = document.getElementById('today-transport');
+  const todayTimeline  = document.getElementById('today-timeline');
+  const todayMapMini   = document.getElementById('today-map-mini');
+
+  if (status.state === 'before') {
+    document.getElementById('status-banner').style.background = '';
+    banner.textContent = '📅 距出發還有 ' + status.daysLeft + ' 天';
+    bannerSub.textContent = '2026/7/13（一）名古屋 出發 ✈️';
+    countNum.textContent = status.daysLeft;
+    countNum.style.fontSize = '';
+    countLabel.textContent = '天後出發';
+    todayDetail.innerHTML = '<div class="alert-card"><div class="alert-title">🗓 旅程尚未開始</div>目前距出發 <strong>' + status.daysLeft + ' 天</strong>，點「行程」瀏覽規劃，點「待辦」確認準備清單！</div>';
+    todayTransport.innerHTML = '';
+    todayTimeline.innerHTML  = '';
+    todayMapMini.style.display = 'none';
+
+  } else if (status.state === 'during') {
+    const d = status.dayData;
+    document.getElementById('status-banner').style.background = '#dc322f';
+
+    // Banner
+    if (window.TransportModule) {
+      const jst = TransportModule.getJSTNow();
+      banner.textContent = '🗺 Day ' + d.n + '：' + d.title;
+      bannerSub.textContent = TransportModule.getBannerSub(d.n, jst.hour, jst.min);
+    } else {
+      banner.textContent = '🗺 旅途中！Day ' + d.n + '：' + d.title;
+      bannerSub.textContent = d.city + ' · ' + d.date;
+    }
+
+    countNum.textContent  = 'Day ' + d.n;
+    countNum.style.fontSize = '36px';
+    countLabel.textContent = '旅途第 ' + d.n + ' 天 ｜ ' + d.city;
+
+    // 今日概覽卡
+    todayDetail.innerHTML = `
+      <div class="day-card today open" style="margin-bottom:12px">
+        <div class="day-header">
+          <div class="day-num" style="background:var(--orange)"><span class="n">${d.n}</span>Day</div>
+          <div class="day-info">
+            <div class="date">${d.date} · ${d.city}</div>
+            <div class="title">${d.title}</div>
+          </div>
+        </div>
+        <div class="day-body" style="display:block">
+          <div class="info-row">
+            <div class="icon">📍</div>
+            <div class="content">${d.highlight}</div>
+          </div>
+          <div class="info-row" style="cursor:pointer" onclick="showTab('itinerary');setTimeout(()=>{let c=document.getElementById('day-${d.n}');if(c){c.classList.add('open');c.scrollIntoView({behavior:'smooth',block:'start'});}},100)">
+            <div class="icon">📋</div>
+            <div class="content" style="color:var(--blue)">→ 查看完整今日行程</div>
+          </div>
+          <div class="info-row" style="cursor:pointer" onclick="showTab('map');setTimeout(()=>mapShowDay(${d.n}),200)">
+            <div class="icon">🗺</div>
+            <div class="content" style="color:var(--blue)">→ 開啟今日地圖</div>
+          </div>
+        </div>
+      </div>`;
+
+    // 下一段交通卡
+    if (window.TransportModule) {
+      const jst = TransportModule.getJSTNow();
+      todayTransport.innerHTML = TransportModule.getNextTransportHTML(d.n, jst.hour, jst.min);
+      todayTimeline.innerHTML  = TransportModule.getTimelineHTML(d.n, jst.hour, jst.min);
+    }
+
+    // Mini map（lazy init）
+    todayMapMini.style.display = 'block';
+    if (window.MapModule && !todayMapMini._mapInited) {
+      todayMapMini._mapInited = true;
+      window._miniMap = window.MapModule.init('today-map-mini', {});
+      setTimeout(() => window.MapModule.showDay(d.n), 300);
+    }
+
+    // 行程 tab 也展開今日卡片
+    const cardInItinerary = document.getElementById('day-' + d.n);
+    if (cardInItinerary) cardInItinerary.classList.add('today', 'open');
+
+  } else {
+    document.getElementById('status-banner').style.background = '#859900';
+    banner.textContent = '✅ 旅程已結束，回到台灣！';
+    bannerSub.textContent = '希望這趟旅行美好 ❤️';
+    countNum.textContent = '✓';
+    countNum.style.fontSize = '';
+    countLabel.textContent = '旅程圓滿結束';
+    todayDetail.innerHTML = '<div class="alert-card" style="background:#e8f4d8;border-left-color:#859900"><div class="alert-title" style="color:#859900">✅ 旅程已順利結束</div>感謝這段美好回憶！</div>';
+    todayTransport.innerHTML = '';
+    todayTimeline.innerHTML  = '';
+    todayMapMini.style.display = 'none';
+  }
+}
+
+/* ── 地圖初始化 ──────────────────────────────────────────────────── */
+function initMap() {
+  if (!window.MapModule) return;
+  mapInitialized = true;
+
+  // 建立 15 顆日期選擇按鈕
+  const grid = document.getElementById('map-day-grid');
+  days.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'map-day-btn';
+    btn.id = 'mapbtn-' + d.n;
+    btn.innerHTML = `<div>D${d.n}</div><div>${d.date.slice(5)}</div>`;
+    btn.onclick = () => mapShowDay(d.n);
+    grid.appendChild(btn);
+  });
+
+  window.MapModule.init('leaflet-map', {});
+}
+
+function mapShowOverview() {
+  if (!window.MapModule) return;
+  if (!mapInitialized) initMap();
+
+  // 清除日期按鈕 active 狀態
+  document.querySelectorAll('.map-day-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('map-day-info').style.display = 'none';
+  document.getElementById('gmaps-link').href = 'https://maps.google.com/maps?q=Nagoya,Japan';
+
+  window.MapModule.showOverview();
+}
+
+function mapShowDay(n) {
+  if (!window.MapModule) return;
+  if (!mapInitialized) { initMap(); setTimeout(() => mapShowDay(n), 400); return; }
+
+  const d = days.find(x => x.n === n);
+  if (!d) return;
+
+  // 更新按鈕狀態
+  document.querySelectorAll('.map-day-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('mapbtn-' + n);
+  if (btn) btn.classList.add('active');
+
+  // 顯示資訊列
+  const info = document.getElementById('map-day-info');
+  info.style.display = 'block';
+  document.getElementById('map-day-title').textContent = 'Day ' + n + '：' + d.title;
+  document.getElementById('map-day-sub').textContent = d.date + ' · ' + d.city;
+
+  // 更新 Google Maps 連結（指向該日第一個景點）
+  const dayData = window.MapModule.getDayData(n);
+  if (dayData && dayData.waypoints.length > 0) {
+    const wp = dayData.waypoints[0];
+    document.getElementById('gmaps-link').href =
+      'https://maps.google.com/maps/dir/?api=1&destination=' + wp.lat + ',' + wp.lng + '&travelmode=transit';
+  }
+
+  window.MapModule.showDay(n);
+}
+
+/* ── 初始化 + 每分鐘更新 ─────────────────────────────────────────── */
+updateTodayTab();
+
+// 旅途中每 60 秒刷新時刻表
+if (getTripStatus().state === 'during') {
+  setInterval(updateTodayTab, 60000);
+}
+
+/* ── 日本即時資訊（天気・新幹線・台風）──────────────────────────── */
+
+async function proxiedFetch(url, isJson) {
+  var proxies = [
+    'https://corsproxy.io/?' + encodeURIComponent(url),
+    'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
+  ];
+  for (var i = 0; i < proxies.length; i++) {
+    var ctrl = new AbortController();
+    var tid = setTimeout((function(c){ return function(){ c.abort(); }; })(ctrl), 9000);
+    try {
+      var res = await fetch(proxies[i], { signal: ctrl.signal });
+      clearTimeout(tid);
+      return isJson ? res.json() : res.text();
+    } catch(e) {
+      clearTimeout(tid);
+      if (i === proxies.length - 1) throw e;
+    }
+  }
+}
+
+async function fetchWeather(city) {
+  var url = 'https://wttr.in/' + encodeURIComponent(city) + '?format=j1&lang=zh-tw';
+  var ctrl = new AbortController();
+  var tid = setTimeout(function(){ ctrl.abort(); }, 9000);
+  try {
+    var res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(tid);
+    return res.json();
+  } catch(e) { clearTimeout(tid); throw e; }
+}
+
+function parseWeather(data) {
+  if (!data || !data.current_condition) return null;
+  var cc = data.current_condition[0];
+  var today = data.weather[0];
+  var maxRain = 0;
+  today.hourly.forEach(function(h){ var r = parseInt(h.chanceofrain)||0; if(r>maxRain) maxRain=r; });
+  return {
+    tempC: cc.temp_C,
+    desc: (cc['lang_zh-tw'] && cc['lang_zh-tw'][0]) ? cc['lang_zh-tw'][0].value
+         : cc.weatherDesc[0].value,
+    maxC: today.maxtempC, minC: today.mintempC,
+    rainChance: maxRain, humidity: cc.humidity
+  };
+}
+
+async function fetchShinkansenStatus() {
+  var htmls = await Promise.allSettled([
+    proxiedFetch('https://transit.yahoo.co.jp/traininfo/area/5/', false),
+    proxiedFetch('https://transit.yahoo.co.jp/traininfo/area/6/', false)
+  ]);
+  var troubles = [], seen = new Set();
+  htmls.forEach(function(r) {
+    if (r.status !== 'fulfilled' || !r.value) return;
+    var doc = new DOMParser().parseFromString(r.value, 'text/html');
+    doc.querySelectorAll('.elmTblLstLine tr').forEach(function(row) {
+      var cells = row.querySelectorAll('td');
+      if (cells.length < 2) return;
+      var nameEl = cells[0].querySelector('a') || cells[0];
+      var name = nameEl.textContent.trim();
+      if (!name || !/新幹線/.test(name) || seen.has(name)) return;
+      var st = cells[1];
+      if (!st.querySelector('.colTrouble') && !/遅延|見合わせ|運休/.test(st.textContent)) return;
+      seen.add(name);
+      troubles.push({ name: name, status: st.textContent.replace(/\s+/g,' ').trim().substring(0,10) });
+    });
+  });
+  return troubles;
+}
+
+async function fetchTyphoon() {
+  try {
+    return await proxiedFetch('https://www.jma.go.jp/bosai/typhoon/data/now.json', true);
+  } catch(e) { return null; }
+}
+
+function renderWeather(wxArr) {
+  var el = document.getElementById('live-weather');
+  if (!el) return;
+  var cities = ['名古屋','京都','大阪'];
+  var html = '';
+  cities.forEach(function(city, i) {
+    var r = wxArr && wxArr[i];
+    var w = (r && r.status === 'fulfilled') ? parseWeather(r.value) : null;
+    if (!w) {
+      html += '<div class="wx-city"><div class="wx-name">' + city + '</div>'
+            + '<div class="train-loading" style="font-size:10px">取得失敗</div></div>';
+      return;
+    }
+    var icon = w.rainChance >= 50 ? '🌧' : w.rainChance >= 20 ? '🌦' : '☀️';
+    html += '<div class="wx-city">'
+          + '<div class="wx-name">' + city + '</div>'
+          + '<div class="wx-temp">' + w.tempC + '°</div>'
+          + '<div class="wx-desc">' + w.desc + '</div>'
+          + '<div class="wx-rain">' + icon + ' 降雨 ' + w.rainChance + '% ｜ '
+          + w.minC + '–' + w.maxC + '°</div></div>';
+  });
+  el.innerHTML = html;
+}
+
+function renderShinkansen(troubles) {
+  var el = document.getElementById('live-shinkansen');
+  if (!el) return;
+  if (!Array.isArray(troubles)) {
+    el.innerHTML = '<div class="train-loading" style="font-size:13px">資料取得失敗</div>'; return;
+  }
+  if (troubles.length === 0) {
+    el.innerHTML = '<div style="font-size:13px"><span class="train-ok">✅ 正常行駛中</span></div>'; return;
+  }
+  var html = '';
+  troubles.forEach(function(t) {
+    var statusZh = /遅延|遅れ/.test(t.status) ? '列車誤點' : /見合わせ|運休/.test(t.status) ? '停駛' : t.status;
+    html += '<div class="live-shinkansen-row"><span class="train-trouble">⚠ 【' + statusZh + '】</span> ' + t.name + '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function renderTyphoon(data) {
+  var el = document.getElementById('live-typhoon');
+  if (!el) return;
+  if (data === null) {
+    var mon = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Tokyo'})).getMonth();
+    if (mon >= 5 && mon <= 9) {
+      el.innerHTML = '<div style="font-size:13px;color:var(--muted)">資料取得失敗 — 請至 <a href="https://www.jma.go.jp/bosai/typhoon/" target="_blank" style="color:var(--blue)">JMA 颱風資訊</a> 確認</div>';
+    } else {
+      el.innerHTML = '<div style="font-size:13px"><span class="train-ok">✅ 非颱風季節</span></div>';
+    }
+    return;
+  }
+  var count = Array.isArray(data) ? data.length : (data.count || 0);
+  if (count === 0) {
+    el.innerHTML = '<div style="font-size:13px"><span class="train-ok">✅ 目前無活動中颱風</span></div>';
+  } else {
+    el.innerHTML = '<div style="font-size:13px"><span class="train-trouble">🌀 颱風 ' + count + ' 個活動中</span>'
+                 + ' — <a href="https://www.jma.go.jp/bosai/typhoon/" target="_blank" style="color:var(--blue)">JMA 詳細</a></div>';
+  }
+}
+
+async function fetchAllLiveInfo() {
+  var btn = document.getElementById('live-refresh-btn');
+  var updEl = document.getElementById('live-updated');
+  if (btn) btn.disabled = true;
+  var loading = '<div class="train-loading" style="font-size:12px">讀取中…</div>';
+  document.getElementById('live-weather').innerHTML = loading;
+  document.getElementById('live-shinkansen').innerHTML = loading;
+  document.getElementById('live-typhoon').innerHTML = loading;
+
+  var all = await Promise.allSettled([
+    Promise.allSettled([fetchWeather('Nagoya'), fetchWeather('Kyoto'), fetchWeather('Osaka')]),
+    fetchShinkansenStatus(),
+    fetchTyphoon()
+  ]);
+
+  renderWeather(all[0].status === 'fulfilled' ? all[0].value : null);
+  renderShinkansen(all[1].status === 'fulfilled' ? all[1].value : null);
+  renderTyphoon(all[2].status === 'fulfilled' ? all[2].value : null);
+
+  if (updEl) {
+    var jst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+    updEl.textContent = '最後更新 '
+      + String(jst.getHours()).padStart(2,'0') + ':' + String(jst.getMinutes()).padStart(2,'0')
+      + ' JST・每 10 分鐘自動更新';
+  }
+  if (btn) btn.disabled = false;
+}
+
+fetchAllLiveInfo();
+setInterval(fetchAllLiveInfo, 10 * 60 * 1000);
+</script>
+</body>
+</html>
